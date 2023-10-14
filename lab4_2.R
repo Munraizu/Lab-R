@@ -1,47 +1,53 @@
+install.packages("igraph")
 install.packages("ggplot2")
-install.packages("dplyr")
-library(ggplot2)
-library(dplyr)
 
-convert_files <- function() {
-  # Шаг 1: создание 5 txt-файлов с числовыми значениями
-  for (i in 1:5) {
-    write.table(runif(10), file = paste0("file", i, ".txt"), row.names = FALSE, col.names = FALSE)
+library(igraph)
+library(ggplot2)
+
+generate_edgelist <- function(num_vertices, num_edges) {
+  edges <- matrix(0, nrow = num_edges, ncol = 2)
+  for (i in 1:num_edges) {
+    edges[i, 1] <- sample(1:num_vertices, 1)
+    edges[i, 2] <- sample(1:num_vertices, 1) 
   }
-  
-  # Шаг 2: чтение файлов и создание переменных
-  txt_files <- list.files(pattern = "*.txt")
-  for (i in seq_along(txt_files)) {
-    file_name <- txt_files[i]
-    file_path <- file.path(getwd(), file_name)
-    variable_name <- paste0("X", i)
-    assign(variable_name, read.table(file_path)$V1)
-  }
-  
-  # Шаг 3: создание графика
-  combined_data <- NULL
-  for (i in 1:5) {
-    variable_name <- paste0("X", i)
-    df <- data.frame(steps = i, value = get(variable_name))
-    if (is.null(combined_data)) {
-      combined_data <- df
-    } else {
-      combined_data <- bind_rows(combined_data, df)
-    }
-  }
-  ggplot(combined_data, aes(x = steps, y = value)) + geom_point()
-  
-  # Шаг 4: объединение строк в дата-фрейм и вывод в консоль
-  combined_df <- NULL
-  for (i in 1:5) {
-    variable_name <- paste0("X", i)
-    df <- data.frame(get(variable_name))
-    if (is.null(combined_df)) {
-      combined_df <- df
-    } else {
-      combined_df <- bind_cols(combined_df, df)
-    }
-  }
-  print(combined_df)
+  edgelist <- data.frame(from = edges[, 1], to = edges[, 2])
+  return(edgelist)
 }
+
+
+create_graph <- function(edgelist) {
+  graph <- graph_from_edgelist(as.matrix(edgelist))
+  return(graph)
+}
+
+visualize_graph <- function(graph) {
+  plot(graph, layout = layout.circle, vertex.color = "blue", edge.color = "black", vertex.label.cex = 0.8)
+  legend("topleft", legend = "Укладка 1", pch = 21, col = "blue", pt.bg = "blue", bg = "white", cex = 0.8)
+  
+  plot(graph, layout = layout.fruchterman.reingold, vertex.color = "red", edge.color = "black", vertex.label.cex = 0.8)
+  legend("topleft", legend = "Укладка 2", pch = 21, col = "red", pt.bg = "red", bg = "white", cex = 0.8)
+  
+  plot(graph, layout = layout.kamada.kawai, vertex.color = "green", edge.color = "black", vertex.label.cex = 0.8)
+  legend("topleft", legend = "Укладка 3", pch = 21, col = "green", pt.bg = "green", bg = "white", cex = 0.8)
+}
+
+save_adjacency_matrix <- function(graph, file_name) {
+  adjacency_matrix <- as_adjacency_matrix(graph)
+  write.table(adjacency_matrix, file = file_name, sep = "\t", quote = FALSE)
+}
+
+save_graph_plot <- function(graph, file_name, format) {
+  png(file_name, width = 800, height = 600)
+  plot(graph, layout = layout.fruchterman.reingold, vertex.color = "red", edge.color = "black", vertex.label.cex = 0.8)
+  dev.off()
+}
+
+edgelist <- generate_edgelist(10, 15)
+
+graph <- create_graph(edgelist)
+
+visualize_graph(graph)
+
+save_adjacency_matrix(graph, "edgelist.txt")
+save_graph_plot(graph, "graph.png", format = "png")
 
